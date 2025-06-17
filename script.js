@@ -180,7 +180,7 @@ function renderItems(data) {
           </div>
           <div class="detail-row">
             <span class="label">현재 모금액:</span>
-            <span class="value">${Number(item.funded).toLocaleString()}만원</span>
+            <span class="value">${item.goal === '-' ? '-' : Number(item.funded).toLocaleString() + '만원'}</span>
           </div>
           <div class="detail-row">
             <span class="label">남은 금액:</span>
