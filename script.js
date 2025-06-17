@@ -1,54 +1,24 @@
 // Google Apps Script 배포 URL을 여기에 입력하세요
-const GET_URL = window.GAS_URL || 'https://script.google.com/macros/s/AKfycbyznoyN9PICbcIpkiV1QCe8g_B6-lSjuu72O9707wBlWAdGsqNhcUY82KED8004T6do/exec';
+const GET_URL = window.GAS_URL || 'https://script.google.com/macros/s/AKfycbxA5I9bcmvXr-sBwbyLEiXbTTP-KDefOE3E616ar-soWpLSLMlbaU4hCAXiSa74HKs/exec';
+
 const POST_URL = GET_URL;
 
 const form = document.getElementById('funding-form');
 const itemsContainer = document.getElementById('items-container');
-const statusEl = document.getElementById('status');
+const loadingStatusEl = document.getElementById('status');
+const fundingStatusEl = document.createElement('div');
+
+// 펀딩 상태 메시지 요소 설정
+fundingStatusEl.id = 'funding-status';
+fundingStatusEl.style.marginBottom = '20px';
+fundingStatusEl.style.padding = '10px';
+fundingStatusEl.style.borderRadius = '4px';
+fundingStatusEl.style.display = 'none';
+
+// 폼의 첫 번째 자식으로 추가
+form.insertBefore(fundingStatusEl, form.firstChild);
 
 let fundingData = [];
-
-const ITEMS_SHEET = 'item';
-const HISTORY_SHEET = 'history';
-
-function doGet() {
-  try {
-    const data = getFundingData();
-    return ContentService.createTextOutput(JSON.stringify(data))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeader('Access-Control-Allow-Origin', '*');
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({ error: error.toString() }))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeader('Access-Control-Allow-Origin', '*');
-  }
-}
-
-function doPost(e) {
-  try {
-    const data = JSON.parse(e.postData.contents);
-    const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(HISTORY_SHEET);
-    
-    // 펀딩 기록 추가
-    sheet.appendRow([
-      new Date(),
-      data.name,
-      data.item,
-      data.amount
-    ]);
-    
-    // 현재 상태 업데이트
-    updateFundingStatus(data.item, data.amount);
-    
-    return ContentService.createTextOutput(JSON.stringify({ success: true }))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeader('Access-Control-Allow-Origin', '*');
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({ error: error.toString() }))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeader('Access-Control-Allow-Origin', '*');
-  }
-}
 
 function getFundingData() {
   try {
@@ -126,7 +96,7 @@ function copyAccountNumber(accountNumber) {
 
 async function loadStatus() {
   try {
-    statusEl.textContent = '⏳ 데이터를 불러오는 중...';
+    loadingStatusEl.textContent = '⏳ 데이터를 불러오는 중...';
     const res = await fetch(GET_URL);
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
@@ -143,10 +113,10 @@ async function loadStatus() {
     
     fundingData = data;
     renderItems(data);
-    statusEl.textContent = '';
+    loadingStatusEl.textContent = '';
   } catch (err) {
     console.error('데이터 로딩 실패:', err);
-    statusEl.textContent = `❌ 데이터를 불러오는데 실패했습니다: ${err.message}`;
+    loadingStatusEl.textContent = `❌ 데이터를 불러오는데 실패했습니다: ${err.message}`;
   }
 }
 
@@ -186,7 +156,7 @@ function renderItems(data) {
           </div>
         </div>
         <label class="select-item">
-          <input type="radio" name="item" value="${item.name}" ${item.complete ? 'disabled' : ''} required>
+          <input type="radio" name="selectedItem" value="${item.name}" ${item.complete ? 'disabled' : ''} required>
           <span class="radio-label">이 항목 펀딩하기</span>
         </label>
       `;
@@ -201,17 +171,29 @@ function renderItems(data) {
 form.addEventListener('submit', async e => {
   e.preventDefault();
   const fd = new FormData(form);
+  const selectedItem = document.querySelector('input[name="selectedItem"]:checked');
+  
+  if (!selectedItem) {
+    fundingStatusEl.textContent = '❌ 펀딩할 항목을 선택해주세요.';
+    fundingStatusEl.style.display = 'block';
+    fundingStatusEl.style.backgroundColor = '#ffebee';
+    return;
+  }
+
   const data = {
     name: fd.get('name'),
-    item: fd.get('item'),
+    item: selectedItem.value,
     amount: parseInt(fd.get('amount'))
   };
-
+  console.log('Sending data:', data);
   try {
-    statusEl.textContent = '⏳ 처리중...';
+    fundingStatusEl.textContent = '⏳ 처리중...';
+    fundingStatusEl.style.display = 'block';
+    fundingStatusEl.style.backgroundColor = '#e3f2fd';
+    
     const response = await fetch(POST_URL, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
       headers: {
         'Content-Type': 'application/json'
       }
@@ -221,17 +203,14 @@ form.addEventListener('submit', async e => {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const result = await response.json();
-    if (result.error) {
-      throw new Error(result.error);
-    }
-    
-    statusEl.textContent = '✅ 펀딩이 성공적으로 접수되었습니다!';
+    fundingStatusEl.textContent = '✅ 펀딩이 성공적으로 접수되었습니다!';
+    fundingStatusEl.style.backgroundColor = '#e8f5e9';
     form.reset();
     await loadStatus();
   } catch (err) {
     console.error('펀딩 실패:', err);
-    statusEl.textContent = `❌ 에러가 발생했습니다: ${err.message}`;
+    fundingStatusEl.textContent = '❌ 서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.';
+    fundingStatusEl.style.backgroundColor = '#ffebee';
   }
 });
 
