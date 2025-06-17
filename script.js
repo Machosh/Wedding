@@ -180,12 +180,15 @@ form.addEventListener('submit', async e => {
     return;
   }
 
-  const data = {
-    name: fd.get('name'),
-    item: selectedItem.value,
-    amount: parseInt(fd.get('amount'))
-  };
-  console.log('Sending data:', data);
+  // FormData에 선택한 항목 추가 (이미 form에 있으면 생략 가능)
+  fd.set('item', selectedItem.value);
+
+  // FormData의 모든 값 로그로 출력
+  for (let pair of fd.entries()) {
+    console.log(pair[0] + ': ' + pair[1]);
+  }
+
+  console.log('Sending data:', fd);
   try {
     fundingStatusEl.textContent = '⏳ 처리중...';
     fundingStatusEl.style.display = 'block';
@@ -193,12 +196,17 @@ form.addEventListener('submit', async e => {
     
     const response = await fetch(POST_URL, {
       method: 'POST',
-      body: data,
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      body: fd // Content-Type 헤더는 자동으로 설정됨
     });
     
+    // 응답 결과 콘솔에 출력
+    const resultText = await response.text();
+    console.log('POST response:', resultText);
+    // JSON 파싱 시도 (실패해도 무시)
+    let result;
+    try {
+      result = JSON.parse(resultText);
+    } catch {}
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
