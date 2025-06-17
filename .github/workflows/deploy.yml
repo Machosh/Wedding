@@ -12,21 +12,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '16'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build
-        env:
-          GAS_URL: ${{ secrets.GAS_URL }}
-        run: |
-          # index.html 파일에서 URL 주입
-          sed -i "s|https://script.google.com/macros/s/AKfycbyznoyN9PICbcIpkiV1QCe8g_B6-lSjuu72O9707wBlWAdGsqNhcUY82KED8004T6do/exec|$GAS_URL|g" index.html
-
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@4.1.4
         with:
