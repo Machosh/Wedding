@@ -141,8 +141,6 @@ async function loadStatus() {
       throw new Error('Invalid data format received');
     }
     
-    console.log('Received data:', data); // 데이터 확인용 로그
-    
     fundingData = data;
     renderItems(data);
     statusEl.textContent = '';
