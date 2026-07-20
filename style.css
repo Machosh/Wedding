@@ -273,12 +273,26 @@ button:disabled {
 }
 
 .qr-section img {
-  width: 200px;
-  height: 200px;
-  object-fit: contain;
+  max-width: 200px;
+  height: auto;
   margin-bottom: 1em;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.qr-placeholder {
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  color: #999;
+  font-size: 0.9em;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .qr-account-info {
@@ -392,9 +406,7 @@ button:disabled {
   }
   
   .qr-section img {
-    width: 150px;
-    height: 150px;
-    object-fit: contain;
+    max-width: 150px;
   }
   
   .account-name,
